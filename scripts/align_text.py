@@ -1,3 +1,4 @@
+import multiprocessing as mp
 from itertools import groupby
 import spacy.parts_of_speech as POS
 import scripts.rdlextra as DL
@@ -358,14 +359,16 @@ def get_alignment(orig, cor, spacy):
 
     return alignment
 
+spacy = spacy.load("en")
 
-def get_moses_like_alignment(original_sentence, correct_sentence, spacy):
+def get_moses_like_alignment(original_sentence, correct_sentence):
     """
 
     :param original_sentence:
     :param correct_sentence:
     :return:
     """
+    global spacy
     moses_like_alignement = []
     orig = spacy(original_sentence.decode('utf8'))
     cor = spacy(correct_sentence.decode('utf8'))
@@ -388,7 +391,6 @@ def get_moses_like_alignment(original_sentence, correct_sentence, spacy):
 
             tar_count += 1
         moses_like_alignement.append(str(orig_count) + "-" + str(tar_count))
-
     return moses_like_alignement
 
 
@@ -407,9 +409,29 @@ def get_errant_alignment(incorrect_file, correct_file, alignment_file):
     cor_lines = correct_reader.readlines()
     for inc_line in incorrect_reader.readlines():
         cor_line = cor_lines[count]
-        align = get_moses_like_alignment(original_sentence=inc_line, correct_sentence=cor_line, spacy=spacy_nlp)
+        align = get_moses_like_alignment(original_sentence=inc_line, correct_sentence=cor_line)
         alignment_writer.write(' '.join(align) + '\n')
         count += 1
+    alignment_writer.close()
+
+
+def multithread_errant_alignment(incorrect_file, correct_file, alignment_file):
+    pool = mp.Pool(processes=12)
+    output = []
+    results = []
+
+    incorrect_reader = open(incorrect_file, 'r')
+    correct_reader = open(correct_file, 'r')
+    alignment_writer = open(alignment_file, 'w')
+    count = 0
+    cor_lines = correct_reader.readlines()
+    print 'started'
+    for inc_line in incorrect_reader.readlines():
+        cor_line = cor_lines[count]
+        results.append(pool.apply_async(get_moses_like_alignment, args=(inc_line, cor_line)))
+        count += 1
+    for r in results:
+        alignment_writer.write(' '. join(r.get())+'\n')
     alignment_writer.close()
 
 
