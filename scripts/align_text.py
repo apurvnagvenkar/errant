@@ -340,6 +340,7 @@ def get_alignment(orig, cor, spacy):
     # Get a list of strings from the spacy objects.
     orig_toks = [tok.text for tok in orig]
     cor_toks = [tok.text for tok in cor]
+    print orig_toks
 #    orig_toks = [tok for tok in orig.split(' ')]
 #    cor_toks = [tok for tok in cor.split(' ')]
 
@@ -378,6 +379,10 @@ def get_moses_like_alignment(original_sentence, correct_sentence):
     moses_like_alignement = []
     orig = spacy(original_sentence.decode('utf8'))
     cor = spacy(correct_sentence.decode('utf8'))
+    original_tokens = original_sentence.split()
+    correct_tokens = correct_sentence.split()
+    if len(original_tokens) != len(orig) or len(correct_tokens) != len(cor):
+        print 'something wrong: %s <---> %s ' % (original_sentence, correct_sentence)
   #  orig = original_sentence
   #  cor = correct_sentence
     alignments = get_alignment(orig=orig, cor=cor, spacy=spacy)
@@ -417,7 +422,10 @@ def detokenize_moses_file(input_file, output_file):
         for token in tokens:
             detoken = detokenize.detokenize(tokens=token.split(), return_str=True)
             data.append(detoken)
-        output_reader.write(' '.join(data).strip()+'\n')
+            candidate_sentence = ' '.join(data)
+            candidate_sentence = candidate_sentence.replace('__tab_tag__', 'tab_tag')
+            candidate_sentence = candidate_sentence.replace('__line_break__', 'line_break')
+        output_reader.write(candidate_sentence.strip()+'\n')
     output_reader.close()
 
 def get_errant_alignment(incorrect_file, correct_file, alignment_file):
@@ -467,4 +475,26 @@ def multithread_errant_alignment(incorrect_file, correct_file, alignment_file):
 # original_sentence = "Here , the in vitro and in vivo biosafety of two kinds of silica ( A200 , nano-sized or micron-sized agglomerates ; S350 , micro-sized particles with nanopores ) were compared and the possible reasons for the differences were explored ."
 # correct_sentence = "Here , the in vitro and in vivo biosafety of two types of silica ( A200 , nano-sized or micron-sized agglomerates ; S350 , micro-sized particles with nanopores ) were compared and the possible reasons for the differences were explored ."
 # spacy_nlp = spacy.load("en")
-# print get_moses_like_alignment(original_sentence=original_sentence, correct_sentence=correct_sentence, spacy=spacy_nlp)
+"""
+origi="&lt; REFERENCE &gt; 8 . __tab_tag__ M. d . G. A. Korn , J. B. de Andrade , D. S. de Jesus , V. A. Lemos , M. L. Bandeira , W. N. dos Santos , M. A. Bezerra , F. A. Amorim , A. S. Souza and S. L. Ferreira , Talanta , 2006 , 69 , 16-24 . &lt; / REFERENCE &gt;"
+tar="&lt; REFERENCE &gt; 8 . __tab_tag__ M. d . G. A. Korn , J. B. de Andrade , D. S. de Jesus , V. A. Lemos , M. L. Bandeira , W. N. dos Santos , M. A. Bezerra , F. A. Amorim , A. S. Souza and S. L. Ferreira , Talanta , 2006 , 69 , 16-24 . &lt; / REFERENCE &gt;"
+detokenize = MosesDetokenizer()
+tokens = origi.split(' ')
+print len(tokens)
+data = []
+for token in tokens:
+    detoken = detokenize.detokenize(tokens=token.split(), return_str=True)
+    data.append(detoken)
+original_sentence = ' '.join(data)
+
+tokens = tar.split(' ')
+data = []
+for token in tokens:
+    detoken = detokenize.detokenize(tokens=token.split(), return_str=True)
+    data.append(detoken)
+correct_sentence = ' '.join(data)
+print original_sentence
+print len(original_sentence.split())
+
+print get_moses_like_alignment(original_sentence=original_sentence, correct_sentence=correct_sentence)
+"""
