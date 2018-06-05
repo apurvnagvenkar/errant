@@ -1,6 +1,9 @@
 import multiprocessing as mp
 from itertools import groupby
 import spacy.parts_of_speech as POS
+from astropy.tests import disable_internet
+from nltk.tokenize.moses import MosesDetokenizer
+
 import scripts.rdlextra as DL
 import string
 import spacy
@@ -337,6 +340,9 @@ def get_alignment(orig, cor, spacy):
     # Get a list of strings from the spacy objects.
     orig_toks = [tok.text for tok in orig]
     cor_toks = [tok.text for tok in cor]
+#    orig_toks = [tok for tok in orig.split(' ')]
+#    cor_toks = [tok for tok in cor.split(' ')]
+
     # Align using Levenshtein.
     args_lev = False
     args_merge = "rules"
@@ -372,7 +378,8 @@ def get_moses_like_alignment(original_sentence, correct_sentence):
     moses_like_alignement = []
     orig = spacy(original_sentence.decode('utf8'))
     cor = spacy(correct_sentence.decode('utf8'))
-
+  #  orig = original_sentence
+  #  cor = correct_sentence
     alignments = get_alignment(orig=orig, cor=cor, spacy=spacy)
     orig_count = -1
     tar_count = -1
@@ -394,6 +401,25 @@ def get_moses_like_alignment(original_sentence, correct_sentence):
     return moses_like_alignement
 
 
+def detokenize_moses_file(input_file, output_file):
+    """
+    Detokenizes the moses train file for errant alignment
+    :param input_file:
+    :param output_file:
+    :return:
+    """
+    detokenize = MosesDetokenizer()
+    input_reader = open(input_file, 'r')
+    output_reader = open(output_file, 'w')
+    for sentence in input_reader.readlines():
+        data = []
+        tokens = sentence.split(' ')
+        for token in tokens:
+            detoken = detokenize.detokenize(tokens=token.split(), return_str=True)
+            data.append(detoken)
+        output_reader.write(' '.join(data).strip()+'\n')
+    output_reader.close()
+
 def get_errant_alignment(incorrect_file, correct_file, alignment_file):
     """
 
@@ -404,7 +430,7 @@ def get_errant_alignment(incorrect_file, correct_file, alignment_file):
     incorrect_reader = open(incorrect_file, 'r')
     correct_reader = open(correct_file, 'r')
     alignment_writer = open(alignment_file, 'w')
-    spacy_nlp = spacy.load("en")
+#    spacy_nlp = spacy.load("en")
     count = 0
     cor_lines = correct_reader.readlines()
     for inc_line in incorrect_reader.readlines():
