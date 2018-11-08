@@ -1,4 +1,7 @@
-# Load latest Hunspell dictionaries: 
+# Load latest Hunspell dictionaries:
+from spacy.tokens.doc import Doc
+
+
 def loadDictionary(path):
 	return set(open(path).read().split())
 
@@ -90,7 +93,8 @@ def processEdits(edits):
 # Annotate tokens with POS, lemma and parse info.
 def applySpacy(sent, nlp):
 	# Convert tokens to spacy tokens and POS tag and parse.
-	sent = nlp.tokenizer.tokens_from_list(sent)
+	#sent = nlp.tokenizer.tokens_from_list(sent)
+	sent = Doc(nlp.vocab, words=sent)
 	nlp.tagger(sent)
 	nlp.parser(sent)
 	return sent
