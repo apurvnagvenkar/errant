@@ -28,13 +28,11 @@ A "noop" edit is a special kind of edit that explicitly indicates an annotator/s
 
 # Pre-requisites
 
-Currently, we only support Python 3. It is safest to install everything in a clean [virtualenv](http://python-guide-pt-br.readthedocs.io/en/latest/dev/virtualenvs/) since we have had reports of conflicting dependencies.
+Currently, we only support Python 3. It is safest to install everything in a clean [virtualenv](https://docs.python-guide.org/dev/virtualenvs/#lower-level-virtualenv) since we have had reports of conflicting dependencies.
 
 ## spaCy
 
 spaCy is a natural language processing (NLP) toolkit available here: https://spacy.io/.
-
-UPDATE 17/12/17: In early November, spaCy underwent significant changes when it became version 2.0.0. Although we have not tested ERRANT with this new version of spaCy, the main difference seems to be a slight increase in performance at a significant cost to speed. As such, we currently recommend the slightly older spaCy v1.9.0 for use with ERRANT.
 
 It can be installed for Python 3 as follows:  
 ```
@@ -58,10 +56,10 @@ Three main scripts are provided with ERRANT: `parallel_to_m2.py`, `m2_to_m2.py` 
 
 1. `parallel_to_m2.py`  
 
-     Extract and classify edits from parallel sentences automatically. This is the simplest annotation script, which requires an original text file, a corrected text file and an output filename. The original and corrected text file must have one sentence per line and be word tokenized.  
+     Extract and classify edits from parallel sentences automatically. This is the simplest annotation script, which requires an original text file, at least one corrected text file, and an output filename. The original and corrected text files must have one sentence per line and be word tokenized.  
 	 Example:
 	 ```
-	 python3 parallel_to_m2.py -orig <orig_file> -cor <cor_file> -out <out_m2>
+	 python3 parallel_to_m2.py -orig <orig_file> -cor <cor_file1> [<cor_file2> ...] -out <out_m2>
 	 ```
 
 2. `m2_to_m2.py`  
@@ -89,8 +87,6 @@ All these scripts also have additional advanced command line options which can b
 
 In terms of speed, automatic edit extraction is the bottleneck. As a guideline, it takes roughly 10 seconds (including loading times) to extract and classify the edits in 100 sentences on an Intel Core i5-6600 @ 3.30GHz machine. In contrast, it takes just 0.2 seconds to classify the edits in the same 100 sentences if the edit boundaries are already known. Bear in mind that these figures are only a rough estimate and runtime actually depends on how different the original and corrected sentences are and how many edits they contain.
 
-UPDATE 22/11/17: When sentences were long and very different, ERRANT would sometimes run into memory problems. We fixed this by changing the default alignment behaviour from breadth-first to depth-first. Experiments showed this barely affects the results and we even saw improvements. It should also make ERRANT faster.
-
 # Edit Extraction
 
 For more information about the edit extraction phase of annotation, we refer the reader to the following paper:
@@ -115,7 +111,7 @@ A special case concerns edits such as [Man -> The man] or [The man -> Man]. Whil
 
 * The number of tokens on each side of the edit is not equal, the lower cased form of the last token is the same, and removing the last token on both sides results in an empty string on one side.
 
-Finally, any gold edit that changes A -> A or Ø -> Ø is labelled Unknown (UNK), since it ultimately has no effect on the text. These are normally gold edits that humans detected, but were unable or unsure how to correct. UNK edits are analagous to *Um* (Unclear Meaning) edits in the NUCLE framework.
+Finally, any gold edit that changes A -> A or Ø -> Ø is labelled Unknown (UNK), since it ultimately has no effect on the text. These are normally gold edits that humans detected, but were unable or unsure how to correct. UNK edits are analogous to *Um* (Unclear Meaning) edits in the NUCLE framework.
 
 ## Token Tier
 
@@ -216,7 +212,7 @@ A second rule captures multi-token adjective form errors:
 
 ### Noun Inflection: NOUN:INFL
 
-Noun inflection errors are usually count-mass noun errors; e.g. [*advices* -> *advice*]. They are a special kind of non-word error that must meet the following criteria:
+Noun inflection errors are usually count-mass noun errors, e.g. [*advices* -> *advice*], but also include cases such as [*countrys* -> *countries*] and [*childs* -> *children*]. They are a special kind of non-word error that must meet the following criteria:
 
 1. There is exactly one token on both sides of the edit.
 2. The original token is entirely alphabetical (no numbers or punctuation).
@@ -231,9 +227,9 @@ Noun inflection errors are usually count-mass noun errors; e.g. [*advices* -> *a
 
 A fairly common POS tagger error concerns nouns that look like adjectives; e.g. [*musical* -> *musicals*]. These are handled by a separate rule that also makes use of fine PTB-style POS tags. 
 
-* There is exactly on token on both sides of the edit, both tokens have the same lemma, the original token is ADJ and the corrected token is a plural noun (NNS).
+* There is exactly one token on both sides of the edit, both tokens have the same lemma, the original token is ADJ and the corrected token is a plural noun (NNS).
 
-This rule was only found to be effective in the singular to plural direction and not the other way around.
+This second rule was only found to be effective in the singular to plural direction and not the other way around.
 
 ### Noun Possessive: NOUN:POSS
 
@@ -303,7 +299,7 @@ Tense errors are complicated. The simplest tense errors are inflectional, e.g. [
 
 &ensp;&ensp;A. A missing or unnecessary auxilliary verb cannot be a form or agreement error so must be tense.  
 &ensp;&ensp;B. As mentioned previously, certain contractions require a special rule.  
-&ensp;&ensp;C. In general, we found that edits with VBD on one side were form errors.  
+&ensp;&ensp;C. In general, we found that edits with VBD on one side were tense errors.  
 &ensp;&ensp;D. In some situations, auxiliaries might be tagged as infinitives (VB) or non-3rd-person forms (VBP). Nevertheless, if they are auxiliaries, they are likely to be tense errors.  
 &ensp;&ensp;E. If the POS tags are different, we rely only on the corrected POS tag.  
 &ensp;&ensp;F. Auxiliary verbs with different lemmas are all likely to be tense errors.  
@@ -314,7 +310,7 @@ It is worth mentioning that although auxiliaries can be further subdivided in te
 
 ## Rule Order
 
-As mentioned at the start of this section, the above rules have been described in isolation when in fact they sometimes interact and may be carefully ordered. The most complex example of this is verb morphology errors: while errors involving gerunds (VBG) or participles (VBN) are usually considered FORM, and errors involving past tense forms (VBD) are usually considered TENSE, edits such as VBG -> VBD, or vice versa, are more ambiguous (FORM or TENSE?). Similarly, SVA errors normally involve a 3rd-person form (VBZ), but there are also cases of VBZ -> VBN (SVA or FORM?). Ultimately, to resolve this problem, we manually inspected the data and determined FORM errors typically supersede SVA errors, while SVA errors typically supersede TENSE errors. This order seemed to produce the most reliable results, but must still be recognised as an approximation. 
+As mentioned at the start of this section, the above rules have been described in isolation when in fact they sometimes interact and may be carefully ordered. The most complex example of this is verb morphology errors: while errors involving gerunds (VBG) or participles (VBN) are usually considered FORM, and errors involving past tense forms (VBD) are usually considered TENSE, edits such as VBG -> VBD, or vice versa, are more ambiguous (FORM or TENSE?). Similarly, SVA errors normally involve a 3rd-person form (VBZ), but there are also cases of VBZ -> VBN (SVA or FORM?). Although such cases are normally the result of a POS tagging error, we ultimately resolved this issue by manually inspecting the data to determine an order of precedence. Specifically, ambiguous errors were first considered FORM if one side was VBG or VBN, second considered SVA if one side was VBP or VBZ, and third considered TENSE if one side was VBD. In our experiments, this order seemed to produce the most reliable results, but it must still be recognised as an approximation. 
 
 Ultimately, since the interactions between our rules are very difficult to describe in words, we refer the reader to the code for more information concerning rule order. Specifically, look at `getOneSidedType` and `getTwoSidedType` in `scripts/cat_rules.py`. In general, the rules presented in this section mirror the order they occur in these functions.
 

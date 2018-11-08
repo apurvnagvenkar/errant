@@ -46,10 +46,15 @@ def check_split(source, target, edits):
 	t = []
 	# Collect the tokens
 	for e in edits:
-		s_tok = source[e[1]:e[2]].orth_.replace("'", "")
-		t_tok = target[e[3]:e[4]].orth_.replace("'", "")
-		if len(s_tok) >= 1: s.append(s_tok)
-		if len(t_tok) >= 1: t.append(t_tok)
+		if e[1] < e[2]:
+			s_tok = source[e[1]:e[2]].orth_.replace("'", "")
+			if len(s_tok) >= 1:
+				s.append(s_tok)
+		if e[3] < e[4]:
+			t_tok = target[e[3]:e[4]].orth_.replace("'", "")
+			if len(t_tok) >= 1:
+				t.append(t_tok)
+
 	
 	if len(s) == len(t):
 		return False
@@ -190,7 +195,7 @@ def get_edits_split(edits):
 	return new_edits	
 
 # all-merge: Merge all adjacent edits of any operation type, except M.
-def get_edits_group_type(edits):
+def get_edits_group_all(edits):
 	new_edits = []
 	for op, group in groupby(edits, lambda x: True if x[0] == "M" else False):
 		if not op:
@@ -198,7 +203,7 @@ def get_edits_group_type(edits):
 	return new_edits
 	
 # all-equal: Merge all edits of the same operation type. 
-def get_edits_group_all(edits):
+def get_edits_group_type(edits):
 	new_edits = []
 	for op, group in groupby(edits, lambda x: x[0]):
 		if op != "M":
